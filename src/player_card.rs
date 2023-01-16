@@ -1,33 +1,85 @@
 pub mod player_card {
-    use std::collections::HashSet;
+    use std::collections::VecDeque;
 
-    use crate::common::common::Color;
+    use rand::seq::SliceRandom;
 
-    #[derive(Debug)]
+    use crate::{common::common::Color, deck::Deck, player::{player::Player, self}};
+
+    #[derive(Debug, Clone, Copy)]
     pub struct City {
         name: &'static str,
         color: Color,
         country: &'static str,
         flag: &'static str,
-        population: u32,
+        pub population: u32,
         population_density: u16,
-        adjacent_cities: HashSet<&'static str>,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone, Copy)]
     pub struct Event {
         name: &'static str,
         event: &'static str,
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone, Copy)]
     pub enum PlayerCard {
         CityCard(City),
         EpidemicCard,
         EventCard(Event),
     }
 
-    pub fn make_deck() -> Vec<PlayerCard> {
+    impl std::fmt::Display for Event {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.name)
+        }
+    }
+
+    impl std::fmt::Display for City {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{} ({}) | {} {} | 👥 {} | 👤/◼️ {}/km²", self.name, self.color, self.flag, self.country, self.population, self.population_density)
+        }
+    }
+
+    impl std::fmt::Display for PlayerCard {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Self::CityCard(city) => write!(f, "City: {}", city),
+                Self::EpidemicCard => write!(f, "{}", "Epidemic!"),
+                Self::EventCard(event) => write!(f, "Event: {}", event),
+            }
+        }
+    }
+
+
+    impl Deck<PlayerCard> {
+        pub fn fill(&mut self) {
+            self.0.append(&mut VecDeque::from(make_deck()))
+        }
+
+        pub fn add_epidemic_cards(&mut self, epidemics: u8) {
+            let chunk_size = self.0.len() / epidemics as usize;
+            let mut old_deck = Vec::from(self.0.clone());
+            let mut new_deck = VecDeque::new();
+            for chunk in old_deck.chunks_mut(chunk_size) {
+                let mut chunk = chunk.to_vec();
+                chunk.push(PlayerCard::EpidemicCard);
+                chunk.shuffle(&mut rand::thread_rng());
+                new_deck.append(&mut VecDeque::from(chunk));
+            }
+            self.0 = new_deck;
+        }
+
+        pub fn deal(&mut self, players: &mut [Player]) {
+            for player in players {
+                match self.draw_from_top() {
+                    Some(card) => player.add_to_hand(card),
+                    None => ()
+                }
+            }
+        }
+    }
+
+    fn make_deck() -> Vec<PlayerCard> {
         let mut deck = Vec::new();
 
         deck.append(&mut make_cities());
@@ -56,7 +108,6 @@ pub mod player_card {
                 flag: "🇺🇸",
                 population: 4_715_000,
                 population_density: 700,
-                adjacent_cities: HashSet::from(["Chicago", "Miami", "Washington"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Chicago",
@@ -65,13 +116,6 @@ pub mod player_card {
                 flag: "🇺🇸",
                 population: 9_121_000,
                 population_density: 1_300,
-                adjacent_cities: HashSet::from([
-                    "Atlanta",
-                    "Los Angeles",
-                    "Mexico City",
-                    "Montréal",
-                    "San Francisco",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Essen",
@@ -80,7 +124,6 @@ pub mod player_card {
                 flag: "🇩🇪",
                 population: 575_000,
                 population_density: 2_800,
-                adjacent_cities: HashSet::from(["London", "Milan", "Paris", "Saint Petersburg"]),
             }),
             PlayerCard::CityCard(City {
                 name: "London",
@@ -89,7 +132,6 @@ pub mod player_card {
                 flag: "🇬🇧",
                 population: 8_586_000,
                 population_density: 5_300,
-                adjacent_cities: HashSet::from(["Essen", "Madrid", "New York", "Paris"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Madrid",
@@ -98,13 +140,6 @@ pub mod player_card {
                 flag: "🇪🇸",
                 population: 5_427_000,
                 population_density: 5_700,
-                adjacent_cities: HashSet::from([
-                    "Algiers",
-                    "London",
-                    "New York",
-                    "Paris",
-                    "São Paulo",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Milan",
@@ -113,7 +148,6 @@ pub mod player_card {
                 flag: "🇮🇹",
                 population: 5_232_000,
                 population_density: 2_800,
-                adjacent_cities: HashSet::from(["Essen", "Istanbul", "Paris"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Montréal",
@@ -122,7 +156,6 @@ pub mod player_card {
                 flag: "🇨🇦",
                 population: 3_429_000,
                 population_density: 2_200,
-                adjacent_cities: HashSet::from(["Chicago", "New York", "Washington"]),
             }),
             PlayerCard::CityCard(City {
                 name: "New York",
@@ -131,7 +164,6 @@ pub mod player_card {
                 flag: "🇺🇸",
                 population: 20_464_000,
                 population_density: 1_800,
-                adjacent_cities: HashSet::from(["London", "Madrid", "Montréal", "Washington"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Paris",
@@ -140,7 +172,6 @@ pub mod player_card {
                 flag: "🇫🇷",
                 population: 10_755_000,
                 population_density: 3_800,
-                adjacent_cities: HashSet::from(["Algiers", "Essen", "London", "Madrid", "Milan"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Saint Petersburg",
@@ -149,7 +180,6 @@ pub mod player_card {
                 flag: "🇷🇺",
                 population: 4_879_000,
                 population_density: 4_100,
-                adjacent_cities: HashSet::from(["Essen", "Istanbul", "Moscow"]),
             }),
             PlayerCard::CityCard(City {
                 name: "San Francisco",
@@ -158,7 +188,6 @@ pub mod player_card {
                 flag: "🇺🇸",
                 population: 5_864_000,
                 population_density: 2_100,
-                adjacent_cities: HashSet::from(["Chicago", "Los Angeles", "Manila", "Tokyo"]),
             }),
         ]
     }
@@ -172,13 +201,6 @@ pub mod player_card {
                 flag: "🇨🇴",
                 population: 8_702_000,
                 population_density: 21_000,
-                adjacent_cities: HashSet::from([
-                    "Buenos Aires",
-                    "Lima",
-                    "Mexico City",
-                    "Miami",
-                    "São Paulo",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Buenos Aires",
@@ -187,7 +209,6 @@ pub mod player_card {
                 flag: "🇦🇷",
                 population: 13_639_000,
                 population_density: 5_200,
-                adjacent_cities: HashSet::from(["Bogotá", "São Paulo"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Johannesburg",
@@ -196,7 +217,6 @@ pub mod player_card {
                 flag: "🇿🇦",
                 population: 3_888_000,
                 population_density: 2_400,
-                adjacent_cities: HashSet::from(["Kinshasa", "Khartoum"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Kinshasa",
@@ -205,7 +225,6 @@ pub mod player_card {
                 flag: "🇨🇩",
                 population: 9_046_000,
                 population_density: 15_500,
-                adjacent_cities: HashSet::from(["Johannesburg", "Khartoum", "Lagos"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Khartoum",
@@ -214,7 +233,6 @@ pub mod player_card {
                 flag: "🇸🇩",
                 population: 4_887_000,
                 population_density: 4_500,
-                adjacent_cities: HashSet::from(["Cairo", "Johannesburg", "Kinshasa", "Lagos"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Lagos",
@@ -223,7 +241,6 @@ pub mod player_card {
                 flag: "🇳🇬",
                 population: 11_547_000,
                 population_density: 12_700,
-                adjacent_cities: HashSet::from(["Khartoum", "Kinshasa", "São Paulo"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Lima",
@@ -232,7 +249,6 @@ pub mod player_card {
                 flag: "🇵🇪",
                 population: 9_121_000,
                 population_density: 14_100,
-                adjacent_cities: HashSet::from(["Bogotá", "Mexico City", "Santiago"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Los Angeles",
@@ -241,12 +257,6 @@ pub mod player_card {
                 flag: "🇺🇸",
                 population: 14_900_000,
                 population_density: 2_400,
-                adjacent_cities: HashSet::from([
-                    "Chicago",
-                    "Mexico City",
-                    "San Francisco",
-                    "Sydney",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Mexico City",
@@ -255,13 +265,6 @@ pub mod player_card {
                 flag: "🇲🇽",
                 population: 19_463_000,
                 population_density: 9_500,
-                adjacent_cities: HashSet::from([
-                    "Bogotá",
-                    "Chicago",
-                    "Lima",
-                    "Los Angeles",
-                    "Miami",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Miami",
@@ -270,7 +273,6 @@ pub mod player_card {
                 flag: "🇺🇸",
                 population: 5_582_000,
                 population_density: 1_700,
-                adjacent_cities: HashSet::from(["Atlanta", "Bogotá", "Mexico City", "Washington"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Santiago",
@@ -279,7 +281,6 @@ pub mod player_card {
                 flag: "🇨🇱",
                 population: 6_015_000,
                 population_density: 6_500,
-                adjacent_cities: HashSet::from(["Lima"]),
             }),
             PlayerCard::CityCard(City {
                 name: "São Paulo",
@@ -288,7 +289,6 @@ pub mod player_card {
                 flag: "🇧🇷",
                 population: 20_186_000,
                 population_density: 6_400,
-                adjacent_cities: HashSet::from(["Bogotá", "Buenos Aires", "Lagos", "Madrid"]),
             }),
         ]
     }
@@ -302,7 +302,6 @@ pub mod player_card {
                 flag: "🇩🇿",
                 population: 2_946_000,
                 population_density: 6_500,
-                adjacent_cities: HashSet::from(["Cairo", "Istanbul", "Madrid", "Paris"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Baghdad",
@@ -311,9 +310,6 @@ pub mod player_card {
                 flag: "🇮🇶",
                 population: 6_204_000,
                 population_density: 10_400,
-                adjacent_cities: HashSet::from([
-                    "Cairo", "Istanbul", "Karachi", "Riyadh", "Tehran",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Cairo",
@@ -322,9 +318,6 @@ pub mod player_card {
                 flag: "🇪🇬",
                 population: 14_718_000,
                 population_density: 8_900,
-                adjacent_cities: HashSet::from([
-                    "Algiers", "Baghdad", "Istanbul", "Khartoum", "Riyadh",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Chennai",
@@ -333,9 +326,6 @@ pub mod player_card {
                 flag: "🇮🇳",
                 population: 8_865_000,
                 population_density: 14_600,
-                adjacent_cities: HashSet::from([
-                    "Bangkok", "Delhi", "Jakarta", "Kolkata", "Mumbai",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Delhi",
@@ -344,9 +334,6 @@ pub mod player_card {
                 flag: "🇮🇳",
                 population: 22_242_000,
                 population_density: 11_500,
-                adjacent_cities: HashSet::from([
-                    "Chennai", "Karachi", "Kolkata", "Mumbai", "Tehran",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Istanbul",
@@ -355,14 +342,6 @@ pub mod player_card {
                 flag: "🇹🇷",
                 population: 13_576_000,
                 population_density: 9_700,
-                adjacent_cities: HashSet::from([
-                    "Algiers",
-                    "Baghdad",
-                    "Cairo",
-                    "Milan",
-                    "Moscow",
-                    "Saint Petersburg",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Karachi",
@@ -371,7 +350,6 @@ pub mod player_card {
                 flag: "🇵🇰",
                 population: 20_711_000,
                 population_density: 25_800,
-                adjacent_cities: HashSet::from(["Baghdad", "Delhi", "Mumbai", "Riyadh", "Tehran"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Kolkata",
@@ -380,7 +358,6 @@ pub mod player_card {
                 flag: "🇮🇳",
                 population: 14_374_000,
                 population_density: 11_900,
-                adjacent_cities: HashSet::from(["Bangkok", "Chennai", "Delhi", "Hong Kong"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Moscow",
@@ -389,7 +366,6 @@ pub mod player_card {
                 flag: "🇷🇺",
                 population: 15_512_000,
                 population_density: 3_500,
-                adjacent_cities: HashSet::from(["Istanbul", "Saint Petersburg", "Tehran"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Riyadh",
@@ -398,7 +374,6 @@ pub mod player_card {
                 flag: "🇸🇦",
                 population: 5_037_000,
                 population_density: 3_400,
-                adjacent_cities: HashSet::from(["Baghdad", "Cairo", "Karachi"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Tehran",
@@ -407,7 +382,6 @@ pub mod player_card {
                 flag: "🇮🇷",
                 population: 7_419_000,
                 population_density: 9_500,
-                adjacent_cities: HashSet::from(["Baghdad", "Delhi", "Karachi", "Moscow"]),
             }),
         ]
     }
@@ -421,13 +395,6 @@ pub mod player_card {
                 flag: "🇹🇭",
                 population: 7_151_000,
                 population_density: 3_200,
-                adjacent_cities: HashSet::from([
-                    "Chennai",
-                    "Ho Chi Minh City",
-                    "Hong Kong",
-                    "Jakarta",
-                    "Kolkata",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Beijing",
@@ -436,7 +403,6 @@ pub mod player_card {
                 flag: "🇨🇳",
                 population: 17_311_000,
                 population_density: 5_000,
-                adjacent_cities: HashSet::from(["Seoul", "Shanghai"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Ho Chi Minh City",
@@ -445,7 +411,6 @@ pub mod player_card {
                 flag: "🇻🇳",
                 population: 8_314_000,
                 population_density: 9_900,
-                adjacent_cities: HashSet::from(["Bangkok", "Hong Kong", "Jakarta", "Manila"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Hong Kong",
@@ -454,14 +419,6 @@ pub mod player_card {
                 flag: "🇭🇰",
                 population: 7_106_000,
                 population_density: 25_900,
-                adjacent_cities: HashSet::from([
-                    "Bangkok",
-                    "Ho Chi Minh City",
-                    "Kolkata",
-                    "Manila",
-                    "Shanghai",
-                    "Taipei",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Jakarta",
@@ -470,12 +427,6 @@ pub mod player_card {
                 flag: "🇮🇩",
                 population: 26_063_000,
                 population_density: 9_400,
-                adjacent_cities: HashSet::from([
-                    "Bangkok",
-                    "Chennai",
-                    "Ho Chi Minh City",
-                    "Sydney",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Manila",
@@ -484,13 +435,6 @@ pub mod player_card {
                 flag: "🇵🇭",
                 population: 20_767_000,
                 population_density: 14_400,
-                adjacent_cities: HashSet::from([
-                    "Ho Chi Minh City",
-                    "Hong Kong",
-                    "San Francisco",
-                    "Sydney",
-                    "Taipei",
-                ]),
             }),
             PlayerCard::CityCard(City {
                 name: "Osaka",
@@ -499,7 +443,6 @@ pub mod player_card {
                 flag: "🇯🇵",
                 population: 2_871_000,
                 population_density: 13_000,
-                adjacent_cities: HashSet::from(["Taipei", "Tokyo"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Seoul",
@@ -508,7 +451,6 @@ pub mod player_card {
                 flag: "🇰🇷",
                 population: 22_547_000,
                 population_density: 10_400,
-                adjacent_cities: HashSet::from(["Beijing", "Shanghai", "Tokyo"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Shanghai",
@@ -517,7 +459,6 @@ pub mod player_card {
                 flag: "🇨🇳",
                 population: 13_482_000,
                 population_density: 2_200,
-                adjacent_cities: HashSet::from(["Beijing", "Hong Kong", "Seoul", "Taipei", "Tokyo"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Sydney",
@@ -526,7 +467,6 @@ pub mod player_card {
                 flag: "🇦🇺",
                 population: 3_785_000,
                 population_density: 2_100,
-                adjacent_cities: HashSet::from(["Jakarta", "Los Angeles", "Manila"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Taipei",
@@ -535,7 +475,6 @@ pub mod player_card {
                 flag: "🇹🇼",
                 population: 13_482_000,
                 population_density: 2_200,
-                adjacent_cities: HashSet::from(["Hong Kong", "Manila", "Osaka", "Shanghai"]),
             }),
             PlayerCard::CityCard(City {
                 name: "Tokyo",
@@ -544,7 +483,6 @@ pub mod player_card {
                 flag: "🇯🇵",
                 population: 13_189_000,
                 population_density: 6_030,
-                adjacent_cities: HashSet::from(["Osaka", "San Francisco", "Seoul", "Shanghai"]),
             }),
         ]
     }
