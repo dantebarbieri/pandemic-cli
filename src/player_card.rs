@@ -3,15 +3,15 @@ pub mod player_card {
 
     use rand::seq::SliceRandom;
 
-    use crate::{common::common::Color, deck::Deck, player::{player::Player, self}};
+    use crate::{common::common::Color, deck::Deck, player::player::Player};
 
     #[derive(Debug, Clone, Copy)]
     pub struct City {
-        name: &'static str,
+        pub(crate) name: &'static str,
         color: Color,
         country: &'static str,
         flag: &'static str,
-        pub population: u32,
+        pub(crate) population: u32,
         population_density: u16,
     }
 
@@ -36,7 +36,16 @@ pub mod player_card {
 
     impl std::fmt::Display for City {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{} ({}) | {} {} | 👥 {} | 👤/◼️ {}/km²", self.name, self.color, self.flag, self.country, self.population, self.population_density)
+            write!(
+                f,
+                "{} ({}) | {} {} | 👥 {} | 👤/◼️ {}/km²",
+                self.name,
+                self.color,
+                self.flag,
+                self.country,
+                self.population,
+                self.population_density
+            )
         }
     }
 
@@ -49,7 +58,6 @@ pub mod player_card {
             }
         }
     }
-
 
     impl Deck<PlayerCard> {
         pub fn fill(&mut self) {
@@ -73,7 +81,7 @@ pub mod player_card {
             for player in players {
                 match self.draw_from_top() {
                     Some(card) => player.add_to_hand(card),
-                    None => ()
+                    None => (),
                 }
             }
         }

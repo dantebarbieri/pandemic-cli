@@ -56,7 +56,7 @@ fn main() {
 
     let difficulties = ["Introductory (4 Epidemics)", "Standard (5 Epidemics)", "Heroic (6 Epidemics)"];
 
-    let difficulty = menu::menu("Set Difficulty", &difficulties).expect("Expected a number.");
+    let difficulty = menu("Set Difficulty", &difficulties).expect("Expected a number.") - 1;
 
     deck.add_epidemic_cards((difficulty + 4).try_into().unwrap_or(4));
 
@@ -76,6 +76,7 @@ fn main() {
         for action in 0..4 {
             println!("{}\nPlease take your turn. Used {}/4 actions.", players[turn_idx], action);
             let actions = players[turn_idx].actions();
+            // TODO: Loop until selection is nonzero
             let selection = menu(format!("Action Menu For {}", players[turn_idx].name).as_str(), actions).expect("Expected a number.");
             println!("{} selected {}.", players[turn_idx].name, actions[selection]);
             players[turn_idx].act(selection);

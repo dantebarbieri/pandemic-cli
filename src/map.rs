@@ -40,6 +40,14 @@ pub mod map {
                 }
             }
         }
+
+        pub fn all_cities(&self) -> Vec<&str> {
+            let mut cities = Vec::new();
+            for key in self.0.keys() {
+                cities.push(*key);
+            }
+            cities
+        }
     }
 
     fn make_cities() -> Vec<City> {

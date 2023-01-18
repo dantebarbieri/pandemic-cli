@@ -4,7 +4,7 @@ pub mod player {
     use crossterm::style::Stylize;
 
     use crate::{
-        map::map::Map, menu::menu, player_card::player_card::PlayerCard, role::role::Role,
+        map::map::Map, menu::{menu, menu_cancelable}, player_card::player_card::PlayerCard, role::role::Role,
     };
 
     #[derive(Debug, Clone)]
@@ -58,21 +58,55 @@ pub mod player {
 
         pub fn act(&mut self, action: usize) {
             match action {
-                0 => self.drive(),
-                _ => ()
+                // TODO: 0 should repeat previous menu
+                1 => self.drive_ferry(),
+                2 => self.direct_flight(),
+                _ => (),
             }
         }
 
-        pub fn drive(&mut self) {
+        pub fn drive_ferry(&mut self) {
             let map = Map::new();
             let mut adjacent_cities =
                 Vec::from_iter((*map.adjacent_to(self.location).unwrap()).clone());
             adjacent_cities.sort_unstable();
-            let selection = menu(
+            // TODO: Handle cancel menu
+            let selection = menu_cancelable(
                 format!("{}'s Drive / Ferry Menu from {}", &self.name, self.location).as_str(),
                 &adjacent_cities,
-            ).expect("Expected a number.");
+            )
+            .expect("Expected a number.");
             self.location = adjacent_cities[selection];
+        }
+
+        pub fn direct_flight(&mut self) {
+            let mut city_cards = Vec::new();
+            for card in &self.hand {
+                match card {
+                    PlayerCard::CityCard(city) => city_cards.push(city.name),
+                    _ => (),
+                }
+            }
+            city_cards.sort_unstable();
+            // TODO: Handle cancel menu
+            let selection = menu_cancelable(
+                format!("{}'s Direct Flight Menu from {}", &self.name, self.location).as_str(),
+                &city_cards,
+            )
+            .expect("Expected a number.");
+            self.location = city_cards[selection];
+            let mut i = 0;
+            while i < self.hand.len() {
+                if let PlayerCard::CityCard(city) = &self.hand[i] {
+                    if city.name == self.location {
+                        self.hand.remove(i);
+                    } else {
+                        i += 1;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
         }
     }
 
