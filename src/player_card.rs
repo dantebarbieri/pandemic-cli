@@ -3,11 +3,11 @@ pub mod player_card {
 
     use rand::seq::SliceRandom;
 
-    use crate::{common::common::Color, deck::Deck, player::player::Player};
+    use crate::{common::common::Color, deck::Deck, player::player::Player, map::map::Cities};
 
     #[derive(Debug, Clone, Copy)]
     pub struct City {
-        pub(crate) name: &'static str,
+        pub(crate) city: Cities,
         color: Color,
         country: &'static str,
         flag: &'static str,
@@ -39,7 +39,7 @@ pub mod player_card {
             write!(
                 f,
                 "{} ({}) | {} {} | 👥 {} | 👤/◼️ {}/km²",
-                self.name,
+                self.city,
                 self.color,
                 self.flag,
                 self.country,
@@ -110,7 +110,7 @@ pub mod player_card {
     fn make_blue_cities() -> Vec<PlayerCard> {
         vec![
             PlayerCard::CityCard(City {
-                name: "Atlanta",
+                city: Cities::Atlanta,
                 color: Color::Blue,
                 country: "United States",
                 flag: "🇺🇸",
@@ -118,7 +118,7 @@ pub mod player_card {
                 population_density: 700,
             }),
             PlayerCard::CityCard(City {
-                name: "Chicago",
+                city: Cities::Chicago,
                 color: Color::Blue,
                 country: "United States",
                 flag: "🇺🇸",
@@ -126,7 +126,7 @@ pub mod player_card {
                 population_density: 1_300,
             }),
             PlayerCard::CityCard(City {
-                name: "Essen",
+                city: Cities::Essen,
                 color: Color::Blue,
                 country: "Germany",
                 flag: "🇩🇪",
@@ -134,7 +134,7 @@ pub mod player_card {
                 population_density: 2_800,
             }),
             PlayerCard::CityCard(City {
-                name: "London",
+                city: Cities::London,
                 color: Color::Blue,
                 country: "United Kingdom",
                 flag: "🇬🇧",
@@ -142,7 +142,7 @@ pub mod player_card {
                 population_density: 5_300,
             }),
             PlayerCard::CityCard(City {
-                name: "Madrid",
+                city: Cities::Madrid,
                 color: Color::Blue,
                 country: "Spain",
                 flag: "🇪🇸",
@@ -150,7 +150,7 @@ pub mod player_card {
                 population_density: 5_700,
             }),
             PlayerCard::CityCard(City {
-                name: "Milan",
+                city: Cities::Milan,
                 color: Color::Blue,
                 country: "Italy",
                 flag: "🇮🇹",
@@ -158,7 +158,7 @@ pub mod player_card {
                 population_density: 2_800,
             }),
             PlayerCard::CityCard(City {
-                name: "Montréal",
+                city: Cities::Montreal,
                 color: Color::Blue,
                 country: "Canada",
                 flag: "🇨🇦",
@@ -166,7 +166,7 @@ pub mod player_card {
                 population_density: 2_200,
             }),
             PlayerCard::CityCard(City {
-                name: "New York",
+                city: Cities::NewYork,
                 color: Color::Blue,
                 country: "United States",
                 flag: "🇺🇸",
@@ -174,7 +174,7 @@ pub mod player_card {
                 population_density: 1_800,
             }),
             PlayerCard::CityCard(City {
-                name: "Paris",
+                city: Cities::Paris,
                 color: Color::Blue,
                 country: "France",
                 flag: "🇫🇷",
@@ -182,7 +182,7 @@ pub mod player_card {
                 population_density: 3_800,
             }),
             PlayerCard::CityCard(City {
-                name: "Saint Petersburg",
+                city: Cities::SaintPetersburg,
                 color: Color::Blue,
                 country: "Russia",
                 flag: "🇷🇺",
@@ -190,11 +190,19 @@ pub mod player_card {
                 population_density: 4_100,
             }),
             PlayerCard::CityCard(City {
-                name: "San Francisco",
+                city: Cities::SanFrancisco,
                 color: Color::Blue,
                 country: "United States",
                 flag: "🇺🇸",
                 population: 5_864_000,
+                population_density: 2_100,
+            }),
+            PlayerCard::CityCard(City {
+                city: Cities::Washington,
+                color: Color::Blue,
+                country: "United States",
+                flag: "🇺🇸",
+                population: 4_679_000,
                 population_density: 2_100,
             }),
         ]
@@ -203,7 +211,7 @@ pub mod player_card {
     fn make_yellow_cities() -> Vec<PlayerCard> {
         vec![
             PlayerCard::CityCard(City {
-                name: "Bogotá",
+                city: Cities::Bogota,
                 color: Color::Yellow,
                 country: "Colombia",
                 flag: "🇨🇴",
@@ -211,7 +219,7 @@ pub mod player_card {
                 population_density: 21_000,
             }),
             PlayerCard::CityCard(City {
-                name: "Buenos Aires",
+                city: Cities::BuenosAires,
                 color: Color::Yellow,
                 country: "Argentina",
                 flag: "🇦🇷",
@@ -219,7 +227,7 @@ pub mod player_card {
                 population_density: 5_200,
             }),
             PlayerCard::CityCard(City {
-                name: "Johannesburg",
+                city: Cities::Johannesburg,
                 color: Color::Yellow,
                 country: "South Africa",
                 flag: "🇿🇦",
@@ -227,7 +235,7 @@ pub mod player_card {
                 population_density: 2_400,
             }),
             PlayerCard::CityCard(City {
-                name: "Kinshasa",
+                city: Cities::Kinshasa,
                 color: Color::Yellow,
                 country: "Democratic Republic of the Congo",
                 flag: "🇨🇩",
@@ -235,7 +243,7 @@ pub mod player_card {
                 population_density: 15_500,
             }),
             PlayerCard::CityCard(City {
-                name: "Khartoum",
+                city: Cities::Khartoum,
                 color: Color::Yellow,
                 country: "Sudan",
                 flag: "🇸🇩",
@@ -243,7 +251,7 @@ pub mod player_card {
                 population_density: 4_500,
             }),
             PlayerCard::CityCard(City {
-                name: "Lagos",
+                city: Cities::Lagos,
                 color: Color::Yellow,
                 country: "Nigeria",
                 flag: "🇳🇬",
@@ -251,7 +259,7 @@ pub mod player_card {
                 population_density: 12_700,
             }),
             PlayerCard::CityCard(City {
-                name: "Lima",
+                city: Cities::Lima,
                 color: Color::Yellow,
                 country: "Peru",
                 flag: "🇵🇪",
@@ -259,7 +267,7 @@ pub mod player_card {
                 population_density: 14_100,
             }),
             PlayerCard::CityCard(City {
-                name: "Los Angeles",
+                city: Cities::LosAngeles,
                 color: Color::Yellow,
                 country: "United States",
                 flag: "🇺🇸",
@@ -267,7 +275,7 @@ pub mod player_card {
                 population_density: 2_400,
             }),
             PlayerCard::CityCard(City {
-                name: "Mexico City",
+                city: Cities::MexicoCity,
                 color: Color::Yellow,
                 country: "Mexico",
                 flag: "🇲🇽",
@@ -275,7 +283,7 @@ pub mod player_card {
                 population_density: 9_500,
             }),
             PlayerCard::CityCard(City {
-                name: "Miami",
+                city: Cities::Miami,
                 color: Color::Yellow,
                 country: "United States",
                 flag: "🇺🇸",
@@ -283,7 +291,7 @@ pub mod player_card {
                 population_density: 1_700,
             }),
             PlayerCard::CityCard(City {
-                name: "Santiago",
+                city: Cities::Santiago,
                 color: Color::Yellow,
                 country: "Chile",
                 flag: "🇨🇱",
@@ -291,7 +299,7 @@ pub mod player_card {
                 population_density: 6_500,
             }),
             PlayerCard::CityCard(City {
-                name: "São Paulo",
+                city: Cities::SaoPaulo,
                 color: Color::Yellow,
                 country: "Brazil",
                 flag: "🇧🇷",
@@ -301,10 +309,11 @@ pub mod player_card {
         ]
     }
 
+    // TODO: Add Mumbai
     fn make_black_cities() -> Vec<PlayerCard> {
         vec![
             PlayerCard::CityCard(City {
-                name: "Algiers",
+                city: Cities::Algiers,
                 color: Color::Black,
                 country: "Algeria",
                 flag: "🇩🇿",
@@ -312,7 +321,7 @@ pub mod player_card {
                 population_density: 6_500,
             }),
             PlayerCard::CityCard(City {
-                name: "Baghdad",
+                city: Cities::Baghdad,
                 color: Color::Black,
                 country: "Iraq",
                 flag: "🇮🇶",
@@ -320,7 +329,7 @@ pub mod player_card {
                 population_density: 10_400,
             }),
             PlayerCard::CityCard(City {
-                name: "Cairo",
+                city: Cities::Cairo,
                 color: Color::Black,
                 country: "Egypt",
                 flag: "🇪🇬",
@@ -328,7 +337,7 @@ pub mod player_card {
                 population_density: 8_900,
             }),
             PlayerCard::CityCard(City {
-                name: "Chennai",
+                city: Cities::Chennai,
                 color: Color::Black,
                 country: "India",
                 flag: "🇮🇳",
@@ -336,7 +345,7 @@ pub mod player_card {
                 population_density: 14_600,
             }),
             PlayerCard::CityCard(City {
-                name: "Delhi",
+                city: Cities::Delhi,
                 color: Color::Black,
                 country: "India",
                 flag: "🇮🇳",
@@ -344,7 +353,7 @@ pub mod player_card {
                 population_density: 11_500,
             }),
             PlayerCard::CityCard(City {
-                name: "Istanbul",
+                city: Cities::Istanbul,
                 color: Color::Black,
                 country: "Turkey",
                 flag: "🇹🇷",
@@ -352,7 +361,7 @@ pub mod player_card {
                 population_density: 9_700,
             }),
             PlayerCard::CityCard(City {
-                name: "Karachi",
+                city: Cities::Karachi,
                 color: Color::Black,
                 country: "Pakistan",
                 flag: "🇵🇰",
@@ -360,7 +369,7 @@ pub mod player_card {
                 population_density: 25_800,
             }),
             PlayerCard::CityCard(City {
-                name: "Kolkata",
+                city: Cities::Kolkata,
                 color: Color::Black,
                 country: "India",
                 flag: "🇮🇳",
@@ -368,7 +377,7 @@ pub mod player_card {
                 population_density: 11_900,
             }),
             PlayerCard::CityCard(City {
-                name: "Moscow",
+                city: Cities::Moscow,
                 color: Color::Black,
                 country: "Russia",
                 flag: "🇷🇺",
@@ -376,7 +385,7 @@ pub mod player_card {
                 population_density: 3_500,
             }),
             PlayerCard::CityCard(City {
-                name: "Riyadh",
+                city: Cities::Riyadh,
                 color: Color::Black,
                 country: "Saudi Arabia",
                 flag: "🇸🇦",
@@ -384,7 +393,7 @@ pub mod player_card {
                 population_density: 3_400,
             }),
             PlayerCard::CityCard(City {
-                name: "Tehran",
+                city: Cities::Tehran,
                 color: Color::Black,
                 country: "Iran",
                 flag: "🇮🇷",
@@ -397,7 +406,7 @@ pub mod player_card {
     fn make_red_cities() -> Vec<PlayerCard> {
         vec![
             PlayerCard::CityCard(City {
-                name: "Bangkok",
+                city: Cities::Bangkok,
                 color: Color::Red,
                 country: "Thailand",
                 flag: "🇹🇭",
@@ -405,7 +414,7 @@ pub mod player_card {
                 population_density: 3_200,
             }),
             PlayerCard::CityCard(City {
-                name: "Beijing",
+                city: Cities::Beijing,
                 color: Color::Red,
                 country: "People's Republic of China",
                 flag: "🇨🇳",
@@ -413,7 +422,7 @@ pub mod player_card {
                 population_density: 5_000,
             }),
             PlayerCard::CityCard(City {
-                name: "Ho Chi Minh City",
+                city: Cities::HoChiMinhCity,
                 color: Color::Red,
                 country: "Vietnam",
                 flag: "🇻🇳",
@@ -421,7 +430,7 @@ pub mod player_card {
                 population_density: 9_900,
             }),
             PlayerCard::CityCard(City {
-                name: "Hong Kong",
+                city: Cities::HongKong,
                 color: Color::Red,
                 country: "Special Administrative Region of the People's Republic of China",
                 flag: "🇭🇰",
@@ -429,7 +438,7 @@ pub mod player_card {
                 population_density: 25_900,
             }),
             PlayerCard::CityCard(City {
-                name: "Jakarta",
+                city: Cities::Jakarta,
                 color: Color::Red,
                 country: "Indonesia",
                 flag: "🇮🇩",
@@ -437,7 +446,7 @@ pub mod player_card {
                 population_density: 9_400,
             }),
             PlayerCard::CityCard(City {
-                name: "Manila",
+                city: Cities::Manila,
                 color: Color::Red,
                 country: "Philippines",
                 flag: "🇵🇭",
@@ -445,7 +454,7 @@ pub mod player_card {
                 population_density: 14_400,
             }),
             PlayerCard::CityCard(City {
-                name: "Osaka",
+                city: Cities::Osaka,
                 color: Color::Red,
                 country: "Japan",
                 flag: "🇯🇵",
@@ -453,7 +462,7 @@ pub mod player_card {
                 population_density: 13_000,
             }),
             PlayerCard::CityCard(City {
-                name: "Seoul",
+                city: Cities::Seoul,
                 color: Color::Red,
                 country: "South Korea",
                 flag: "🇰🇷",
@@ -461,7 +470,7 @@ pub mod player_card {
                 population_density: 10_400,
             }),
             PlayerCard::CityCard(City {
-                name: "Shanghai",
+                city: Cities::Shanghai,
                 color: Color::Red,
                 country: "People's Republic of China",
                 flag: "🇨🇳",
@@ -469,7 +478,7 @@ pub mod player_card {
                 population_density: 2_200,
             }),
             PlayerCard::CityCard(City {
-                name: "Sydney",
+                city: Cities::Sydney,
                 color: Color::Red,
                 country: "Australia",
                 flag: "🇦🇺",
@@ -477,7 +486,7 @@ pub mod player_card {
                 population_density: 2_100,
             }),
             PlayerCard::CityCard(City {
-                name: "Taipei",
+                city: Cities::Taipei,
                 color: Color::Red,
                 country: "Taiwan",
                 flag: "🇹🇼",
@@ -485,7 +494,7 @@ pub mod player_card {
                 population_density: 2_200,
             }),
             PlayerCard::CityCard(City {
-                name: "Tokyo",
+                city: Cities::Tokyo,
                 color: Color::Red,
                 country: "Japan",
                 flag: "🇯🇵",

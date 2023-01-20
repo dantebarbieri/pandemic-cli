@@ -4,14 +4,17 @@ pub mod player {
     use crossterm::style::Stylize;
 
     use crate::{
-        map::map::Map, menu::{menu, menu_cancelable}, player_card::player_card::PlayerCard, role::role::Role,
+        map::map::{Cities, Map},
+        menu::{menu, menu_cancelable},
+        player_card::player_card::PlayerCard,
+        role::role::Role,
     };
 
     #[derive(Debug, Clone)]
     pub struct Player {
         pub name: String,
         hand: Vec<PlayerCard>,
-        location: &'static str,
+        location: Cities,
         role: Role,
     }
 
@@ -20,7 +23,7 @@ pub mod player {
             Self {
                 name: String::from(name),
                 hand: Vec::new(),
-                location: "Atlanta",
+                location: Cities::Atlanta,
                 role,
             }
         }
@@ -56,55 +59,109 @@ pub mod player {
             ]
         }
 
-        pub fn act(&mut self, action: usize) {
+        pub fn act(&mut self, action: usize) -> bool {
             match action {
-                // TODO: 0 should repeat previous menu
                 1 => self.drive_ferry(),
                 2 => self.direct_flight(),
-                _ => (),
+                3 => self.chartered_flight(),
+                _ => false,
             }
         }
 
-        pub fn drive_ferry(&mut self) {
+        pub fn drive_ferry(&mut self) -> bool {
             let map = Map::new();
-            let mut adjacent_cities =
-                Vec::from_iter((*map.adjacent_to(self.location).unwrap()).clone());
+            let mut adjacent_cities = Vec::from_iter(map.adjacent_to(&self.location).unwrap());
             adjacent_cities.sort_unstable();
-            // TODO: Handle cancel menu
             let selection = menu_cancelable(
                 format!("{}'s Drive / Ferry Menu from {}", &self.name, self.location).as_str(),
                 &adjacent_cities,
-            )
-            .expect("Expected a number.");
-            self.location = adjacent_cities[selection];
+            );
+            if selection == 0 {
+                false
+            } else {
+                self.location = adjacent_cities[selection - 1];
+                true
+            }
         }
 
-        pub fn direct_flight(&mut self) {
+        pub fn direct_flight(&mut self) -> bool {
             let mut city_cards = Vec::new();
             for card in &self.hand {
                 match card {
-                    PlayerCard::CityCard(city) => city_cards.push(city.name),
+                    PlayerCard::CityCard(city) => city_cards.push(city.city),
                     _ => (),
                 }
             }
             city_cards.sort_unstable();
-            // TODO: Handle cancel menu
             let selection = menu_cancelable(
                 format!("{}'s Direct Flight Menu from {}", &self.name, self.location).as_str(),
                 &city_cards,
-            )
-            .expect("Expected a number.");
-            self.location = city_cards[selection];
-            let mut i = 0;
-            while i < self.hand.len() {
-                if let PlayerCard::CityCard(city) = &self.hand[i] {
-                    if city.name == self.location {
-                        self.hand.remove(i);
+            );
+            if selection == 0 {
+                false
+            } else {
+                self.location = city_cards[selection - 1];
+                let mut i = 0;
+                while i < self.hand.len() {
+                    if let PlayerCard::CityCard(city) = &self.hand[i] {
+                        if city.city == self.location {
+                            self.hand.remove(i);
+                        } else {
+                            i += 1;
+                        }
                     } else {
                         i += 1;
                     }
+                }
+                true
+            }
+        }
+
+        pub fn chartered_flight(&mut self) -> bool {
+            let mut city_cards = Vec::new();
+            for card in &self.hand {
+                match card {
+                    PlayerCard::CityCard(city) => {
+                        if city.city == self.location {
+                            city_cards.push(city.city);
+                        }
+                    }
+                    _ => (),
+                }
+            }
+            let selection =
+                menu_cancelable("Consume a card to take a Chartered Flight?", &city_cards);
+            if selection == 0 {
+                false
+            } else {
+                let map = Map::new();
+                let mut cities = map.all_cities();
+                cities.sort_unstable();
+                let selection = menu_cancelable(
+                    format!(
+                        "{}'s Charter Flight Menu from {}",
+                        &self.name, self.location
+                    )
+                    .as_str(),
+                    &cities,
+                );
+                if selection == 0 {
+                    false
                 } else {
-                    i += 1;
+                    let mut i = 0;
+                    while i < self.hand.len() {
+                        if let PlayerCard::CityCard(city) = &self.hand[i] {
+                            if city.city == self.location {
+                                self.hand.remove(i);
+                            } else {
+                                i += 1;
+                            }
+                        } else {
+                            i += 1;
+                        }
+                    }
+                    self.location = cities[selection - 1];
+                    true
                 }
             }
         }

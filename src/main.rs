@@ -8,6 +8,8 @@ mod role;
 
 use std::io::Write;
 
+use crossterm::style::Stylize;
+
 use crate::{
     deck::Deck, player::player::Player, player_card::player_card::PlayerCard, role::role::RoleCard, menu::menu,
 };
@@ -56,7 +58,7 @@ fn main() {
 
     let difficulties = ["Introductory (4 Epidemics)", "Standard (5 Epidemics)", "Heroic (6 Epidemics)"];
 
-    let difficulty = menu("Set Difficulty", &difficulties).expect("Expected a number.") - 1;
+    let difficulty = menu("Set Difficulty", &difficulties) - 1;
 
     deck.add_epidemic_cards((difficulty + 4).try_into().unwrap_or(4));
 
@@ -73,13 +75,18 @@ fn main() {
 
     let mut turn_idx = 0 as usize;
     loop {
-        for action in 0..4 {
+        let mut action = 0;
+        while action < 4 {
             println!("{}\nPlease take your turn. Used {}/4 actions.", players[turn_idx], action);
             let actions = players[turn_idx].actions();
             // TODO: Loop until selection is nonzero
-            let selection = menu(format!("Action Menu For {}", players[turn_idx].name).as_str(), actions).expect("Expected a number.");
+            let selection = menu(format!("Action Menu For {}", players[turn_idx].name).as_str(), actions);
+
             println!("{} selected {}.", players[turn_idx].name, actions[selection]);
-            players[turn_idx].act(selection);
+            if players[turn_idx].act(selection)
+            {
+                action += 1;
+            }
         }
         
         turn_idx += 1;
