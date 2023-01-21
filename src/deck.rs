@@ -4,7 +4,7 @@ use std::collections::{vec_deque::IntoIter, VecDeque};
 pub struct Deck<T>(pub(crate) VecDeque<T>);
 
 impl<T> Deck<T> {
-    pub fn new() -> Self {
+    pub fn new_empty() -> Self {
         Self(VecDeque::new())
     }
 
@@ -34,6 +34,10 @@ impl<T> Deck<T> {
             // lock element i in place.
             self.0.swap(i, rng.gen_range(0..i + 1));
         }
+    }
+
+    pub fn append(&mut self, other: &mut Self) {
+        self.0.append(&mut other.0)
     }
 }
 

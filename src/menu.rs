@@ -3,14 +3,18 @@ use std::{fmt::Display, io::Write};
 use crossterm::style::{Color, Stylize};
 
 pub fn menu_cancelable(title: &str, options: &[impl Display]) -> usize {
+    menu_injectable(title, "Go Back to Previous Menu", options)
+}
+
+pub fn menu_injectable(title: &str, first_option: &str, options: &[impl Display]) -> usize {
     loop {
-        println!("{:=^60}", format!("  {}  ", title));
-        println!("\t{}. {}", 0, "Go Back to Previous Menu");
+        println!("{:=^94}", format!(" {} ", title));
+        println!("\t{}. {}", 0, first_option);
         for i in 0..options.len() {
             println!("\t{}. {}", i + 1, options[i]);
         }
         print!("{}: ", "Enter selection");
-        std::io::stdout().flush();
+        std::io::stdout().flush().unwrap_or_default();
         let mut input = String::new();
         match std::io::stdin().read_line(&mut input) {
             Ok(_) => match input.trim().parse::<usize>() {
@@ -38,12 +42,12 @@ pub fn menu_cancelable(title: &str, options: &[impl Display]) -> usize {
 
 pub fn menu(title: &str, options: &[impl Display]) -> usize {
     loop {
-        println!("{:=^60}", format!("  {}  ", title));
+        println!("{:=^94}", format!(" {} ", title));
         for i in 0..options.len() {
             println!("\t{}. {}", i + 1, options[i]);
         }
         print!("{}: ", "Enter selection");
-        std::io::stdout().flush();
+        std::io::stdout().flush().unwrap_or_default();
         let mut input = String::new();
         match std::io::stdin().read_line(&mut input) {
             Ok(_) => match input.trim().parse::<usize>() {
