@@ -9,6 +9,8 @@ mod role;
 
 use std::io::Write;
 
+use crossterm::style::Stylize;
+
 use crate::{
     deck::Deck, player::Player, role::RoleCard, menu::{menu, menu_injectable}, board::Board, player_card::PlayerCard,
 };
@@ -87,6 +89,8 @@ fn main() {
         }
     }
 
+    println!("{:?}", board.player_deck);
+
     let mut turn_idx = 0 as usize;
     loop {
         let mut action = 0;
@@ -111,7 +115,7 @@ fn main() {
         }
 
         while !event_cards.is_empty() {
-            let selection = menu_injectable(format!("Does {} wish to play any Event cards before drawing 2 cards?", players[turn_idx].name).as_str(), "Draw 2 cards from player deck", &event_cards);
+            let selection = menu_injectable(format!("Does {} wish to play any Event cards before drawing 2 cards? {}/{} cards in hand", players[turn_idx].name, players[turn_idx].hand.len(), player::MAX_CARDS_IN_HAND).as_str(), "Draw 2 cards from player deck", &event_cards);
 
             if selection == 0 { break; }
             let selection = selection - 1;
@@ -150,13 +154,21 @@ fn main() {
                         }
 
                     },
-                    _ => players[turn_idx].add_to_hand(card)
+                    _ => {
+                        println!("{} drew {}", &players[turn_idx].name, &card);
+                        players[turn_idx].add_to_hand(card)
+                    }
                 },
                 None => {
                     println!("Game Over: Your team ran out of time! (There are not enough player cards left)");
                     return;
                 }
             }
+        }
+
+        while players[turn_idx].hand.len() > player::MAX_CARDS_IN_HAND {
+            let selection = menu(format!("Discard Cards in {}'s Hand: {}/{} cards", players[turn_idx].name.clone().bold(), players[turn_idx].hand.len(), player::MAX_CARDS_IN_HAND).as_str(), &players[turn_idx].hand);
+            players[turn_idx].hand.remove(selection - 1);
         }
 
         for _ in 0..board.infection_rate() {

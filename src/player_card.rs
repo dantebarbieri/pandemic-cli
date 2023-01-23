@@ -105,12 +105,17 @@ impl Deck<PlayerCard> {
     }
 
     pub fn add_epidemic_cards(&mut self, epidemics: u8) {
-        let chunk_size = self.0.len() / epidemics as usize;
+        let chunk_size = (self.0.len() as f64 / epidemics as f64).round() as usize;
         let mut old_deck = Vec::from(self.0.clone());
         let mut new_deck = VecDeque::new();
+        let mut count = 0;
         for chunk in old_deck.chunks_mut(chunk_size) {
             let mut chunk = chunk.to_vec();
-            chunk.push(PlayerCard::EpidemicCard);
+            if count < epidemics {
+                chunk.push(PlayerCard::EpidemicCard);
+            }
+            count += 1;
+            println!("Chunk {} :: {:?}", count, chunk);
             chunk.shuffle(&mut rand::thread_rng());
             new_deck.append(&mut VecDeque::from(chunk));
         }

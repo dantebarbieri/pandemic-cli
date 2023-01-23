@@ -2,9 +2,9 @@ use crossterm::style::{Color as ConsoleColor, Stylize};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Color {
+    Blue,
     Yellow,
     Black,
-    Blue,
     Red,
 }
 

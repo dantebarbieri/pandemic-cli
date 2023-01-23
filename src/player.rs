@@ -3,11 +3,14 @@ use std::u32::MIN;
 use crossterm::style::Stylize;
 
 use crate::{
-    board::{Board, Cities},
+    board::{self, Board, Cities},
+    common::Color,
     menu::menu_cancelable,
-    player_card::{PlayerCard, Events, Event},
+    player_card::{Event, Events, PlayerCard},
     role::Role,
 };
+
+pub const MAX_CARDS_IN_HAND: usize = 7;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -65,13 +68,20 @@ impl Player {
             1 => self.drive_ferry(board),
             2 => self.direct_flight(board),
             3 => self.chartered_flight(board),
+            4 => self.shuttle_flight(board),
+            5 => self.build_research_station(board),
+            6 => self.treat_disease(board),
+            7 => self.share_knowledge(board),
+            8 => self.discover_cure(board),
             _ => false,
         }
     }
 
     pub fn play_event(&mut self, board: &mut Board, event: Event) -> bool {
         println!("{} played {}. TODO Implementation ;)", self.name, &event);
-        board.player_discard.discard_to_top(PlayerCard::EventCard(event));
+        board
+            .player_discard
+            .discard_to_top(PlayerCard::EventCard(event));
         true
     }
 
@@ -168,6 +178,194 @@ impl Player {
                 true
             }
         }
+    }
+
+    pub fn shuttle_flight(&mut self, board: &mut Board) -> bool {
+        if !board.map.get(&self.location).unwrap().has_research_station {
+            println!("{}'s current city, {}, does not have a research station, so shuttle flight is not available.", &self.name, &self.location);
+            return false;
+        }
+        let mut cities_with_research_stations = Vec::new();
+        for city in board.map.values() {
+            if city.has_research_station {
+                cities_with_research_stations.push(city.city.clone());
+            }
+        }
+        cities_with_research_stations.sort_unstable();
+        let selection = menu_cancelable(
+            format!(
+                "{}'s Shuttle Flight Menu from {}",
+                &self.name, self.location
+            )
+            .as_str(),
+            &cities_with_research_stations,
+        );
+        if selection == 0 {
+            false
+        } else {
+            self.location = cities_with_research_stations[selection - 1];
+            true
+        }
+    }
+
+    pub fn build_research_station(&mut self, board: &mut Board) -> bool {
+        let mut city_cards = Vec::new();
+        for card in &self.hand {
+            match card {
+                PlayerCard::CityCard(city) => {
+                    if city.city == self.location {
+                        city_cards.push(city.city);
+                    }
+                }
+                _ => (),
+            }
+        }
+        let selection = menu_cancelable(format!("Should {} consume a card to build a Research Station? Currently {}/{} Research Stations", self.name.clone().bold(), board.total_research_stations(), board::MAX_RESEARCH_STATIONS).as_str(), &city_cards);
+        if selection == 0 {
+            false
+        } else {
+            if board.total_research_stations() >= board::MAX_RESEARCH_STATIONS {
+                let mut cities_with_research_stations = Vec::new();
+                for city in board.map.values() {
+                    if city.has_research_station {
+                        cities_with_research_stations.push(city.city.clone());
+                    }
+                }
+                cities_with_research_stations.sort_unstable();
+                let selection = menu_cancelable(
+                    format!("{} can move a Research Station", &self.name).as_str(),
+                    &cities_with_research_stations,
+                );
+                if selection == 0 {
+                    return false;
+                } else {
+                    match board
+                        .map
+                        .get_mut(&cities_with_research_stations[selection - 1])
+                    {
+                        Some(x) => x.has_research_station = false,
+                        None => (),
+                    }
+                }
+            }
+            let mut i = 0;
+            while i < self.hand.len() {
+                if let PlayerCard::CityCard(city) = &self.hand[i] {
+                    if city.city == self.location {
+                        board.player_discard.discard_to_top(self.hand.remove(i));
+                    } else {
+                        i += 1;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            match board.map.get_mut(&self.location) {
+                Some(x) => x.has_research_station = true,
+                None => (),
+            }
+            true
+        }
+    }
+
+    pub fn treat_disease(&mut self, board: &mut Board) -> bool {
+        match board.map.get_mut(&self.location) {
+            Some(city) => {
+                let options = [
+                    format!(
+                        "Treat {} ({}/{})",
+                        Color::Blue,
+                        city.blue_infection_count,
+                        board::MAX_INFECTION_PER_TYPE_PER_CITY
+                    ),
+                    format!(
+                        "Treat {} ({}/{})",
+                        Color::Yellow,
+                        city.yellow_infection_count,
+                        board::MAX_INFECTION_PER_TYPE_PER_CITY
+                    ),
+                    format!(
+                        "Treat {} ({}/{})",
+                        Color::Black,
+                        city.black_infection_count,
+                        board::MAX_INFECTION_PER_TYPE_PER_CITY
+                    ),
+                    format!(
+                        "Treat {} ({}/{})",
+                        Color::Red,
+                        city.red_infection_count,
+                        board::MAX_INFECTION_PER_TYPE_PER_CITY
+                    ),
+                ];
+                let selection = menu_cancelable(
+                    format!(
+                        "{} is Treating Disease in {}",
+                        self.name.clone().bold(),
+                        &self.location
+                    )
+                    .as_str(),
+                    &options,
+                );
+                match selection {
+                    0 => return false,
+                    1 => {
+                        if city.blue_infection_count > 0 {
+                            if board.blue_disease == board::DiseaseState::Cured {
+                                city.blue_infection_count = 0;
+                            } else {
+                                city.blue_infection_count -= 1;
+                            }
+                        } else {
+                            return false;
+                        }
+                    }
+                    2 => {
+                        if city.yellow_infection_count > 0 {
+                            if board.yellow_disease == board::DiseaseState::Cured {
+                                city.yellow_infection_count = 0;
+                            } else {
+                                city.yellow_infection_count -= 1;
+                            }
+                        } else {
+                            return false;
+                        }
+                    }
+                    3 => {
+                        if city.black_infection_count > 0 {
+                            if board.black_disease == board::DiseaseState::Cured {
+                                city.black_infection_count = 0;
+                            } else {
+                                city.black_infection_count -= 1;
+                            }
+                        } else {
+                            return false;
+                        }
+                    }
+                    4 => {
+                        if city.red_infection_count > 0 {
+                            if board.red_disease == board::DiseaseState::Cured {
+                                city.red_infection_count = 0;
+                            } else {
+                                city.red_infection_count -= 1;
+                            }
+                        } else {
+                            return false;
+                        }
+                    }
+                    _ => return false,
+                }
+                true
+            }
+            None => false,
+        }
+    }
+
+    pub fn share_knowledge(&mut self, board: &mut Board) -> bool {
+        todo!()
+    }
+
+    pub fn discover_cure(&mut self, board: &mut Board) -> bool {
+        todo!()
     }
 }
 

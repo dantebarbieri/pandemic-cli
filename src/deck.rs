@@ -1,6 +1,7 @@
 use rand::Rng;
 use std::collections::{vec_deque::IntoIter, VecDeque};
 
+#[derive(Debug)]
 pub struct Deck<T>(pub(crate) VecDeque<T>);
 
 impl<T> Deck<T> {
