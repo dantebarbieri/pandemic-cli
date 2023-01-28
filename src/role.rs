@@ -10,7 +10,7 @@ pub struct RoleCard {
     pub description: Vec<&'static str>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Role {
     ContingencyPlanner,
     Dispatcher,
@@ -53,28 +53,42 @@ impl Deck<RoleCard> {
     }
 }
 
+impl Role {
+    pub fn color(&self) -> Color {
+        match self {
+            Self::ContingencyPlanner => Color::Cyan,
+            Self::Dispatcher => Color::Magenta,
+            Self::Medic => Color::DarkRed,
+            Self::OperationsExpert(_) => Color::Green,
+            Self::QuarantineSpecialist => Color::DarkGreen,
+            Self::Researcher => Color::DarkYellow,
+            Self::Scientist => Color::White,
+        }
+    }
+}
+
 impl std::fmt::Display for Role {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ContingencyPlanner => {
-                write!(f, "{}", "Contingency Planner".with(Color::Cyan))
+                write!(f, "{}", "Contingency Planner".with(self.color()))
             }
-            Self::Dispatcher => write!(f, "{}", "Dispatcher".with(Color::Magenta)),
-            Self::Medic => write!(f, "{}", "Medic".with(Color::DarkRed)),
+            Self::Dispatcher => write!(f, "{}", "Dispatcher".with(self.color())),
+            Self::Medic => write!(f, "{}", "Medic".with(self.color())),
             Self::OperationsExpert(card) => match card {
                 Some(card) => write!(
                     f,
                     "{} holding {}",
-                    "Operations Expert".with(Color::Green),
+                    "Operations Expert".with(self.color()),
                     card
                 ),
-                None => write!(f, "{}", "Operations Expert".with(Color::Green)),
+                None => write!(f, "{}", "Operations Expert".with(self.color())),
             },
             Self::QuarantineSpecialist => {
-                write!(f, "{}", "Quarantine Specialist".with(Color::DarkGreen))
+                write!(f, "{}", "Quarantine Specialist".with(self.color()))
             }
-            Self::Researcher => write!(f, "{}", "Researcher".with(Color::DarkYellow)),
-            Self::Scientist => write!(f, "{}", "Scientist".with(Color::White)),
+            Self::Researcher => write!(f, "{}", "Researcher".with(self.color())),
+            Self::Scientist => write!(f, "{}", "Scientist".with(self.color())),
         }
     }
 }

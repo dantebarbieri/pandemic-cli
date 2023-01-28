@@ -1,12 +1,12 @@
 use std::u32::MIN;
 
-use crossterm::style::Stylize;
+use crossterm::style::{StyledContent, Stylize};
 
 use crate::{
-    board::{self, Board, Cities},
+    board::{self, Board, Cities, DiseaseState},
     common::Color,
     menu::menu_cancelable,
-    player_card::{Event, Events, PlayerCard},
+    player_card::{Event, PlayerCard},
     role::Role,
 };
 
@@ -14,7 +14,7 @@ pub const MAX_CARDS_IN_HAND: usize = 7;
 
 #[derive(Debug, Clone)]
 pub struct Player {
-    pub name: String,
+    name: String,
     pub(crate) hand: Vec<PlayerCard>,
     location: Cities,
     role: Role,
@@ -49,20 +49,25 @@ impl Player {
         max
     }
 
-    pub fn actions(&self) -> &[&str] {
-        &[
-            "Drive / Ferry",
-            "Direct Flight",
-            "Charter Flight",
-            "Shuttle Flight",
-            "Build a Research Station",
-            "Treat Disease",
-            "Share Knowledge",
-            "Discover a Cure",
-        ]
+    pub fn name(&self) -> StyledContent<String> {
+        self.name.clone().bold().with(self.role.color())
     }
 
-    pub fn act(&mut self, board: &mut Board, action: usize) -> bool {
+    pub fn actions(&self) -> Vec<String> {
+        let mut actions = Vec::from([
+            "Drive / Ferry (Cost: 1 action)".to_owned(),
+            "Direct Flight (Cost: 1 action)".to_owned(),
+            "Charter Flight (Cost: 1 action)".to_owned(),
+            "Shuttle Flight (Cost: 1 action)".to_owned(),
+            "Build a Research Station (Cost: 1 action)".to_owned(),
+            "Treat Disease (Cost: 1 action)".to_owned(),
+            "Share Knowledge (Cost: 1 action)".to_owned(),
+            "Discover a Cure (Cost: 1 action)".to_owned(),
+        ]);
+        actions
+    }
+
+    pub fn act(&mut self, board: &mut Board, players: &mut [Player], action: usize) -> bool {
         match action {
             0 => true,
             1 => self.drive_ferry(board),
@@ -71,14 +76,14 @@ impl Player {
             4 => self.shuttle_flight(board),
             5 => self.build_research_station(board),
             6 => self.treat_disease(board),
-            7 => self.share_knowledge(board),
+            7 => self.share_knowledge(players),
             8 => self.discover_cure(board),
             _ => false,
         }
     }
 
     pub fn play_event(&mut self, board: &mut Board, event: Event) -> bool {
-        println!("{} played {}. TODO Implementation ;)", self.name, &event);
+        println!("{} played {}. TODO Implementation ;)", self.name(), &event);
         board
             .player_discard
             .discard_to_top(PlayerCard::EventCard(event));
@@ -86,10 +91,15 @@ impl Player {
     }
 
     pub fn drive_ferry(&mut self, board: &mut Board) -> bool {
-        let mut adjacent_cities = Vec::from_iter(board.adjacent_to(&self.location).unwrap());
+        let mut adjacent_cities = Vec::from_iter(board.adjacent_to(self.location).unwrap());
         adjacent_cities.sort_unstable();
         let selection = menu_cancelable(
-            format!("{}'s Drive / Ferry Menu from {}", &self.name, self.location).as_str(),
+            format!(
+                "{}'s Drive / Ferry Menu from {}",
+                self.name(),
+                self.location
+            )
+            .as_str(),
             &adjacent_cities,
         );
         if selection == 0 {
@@ -110,7 +120,12 @@ impl Player {
         }
         city_cards.sort_unstable();
         let selection = menu_cancelable(
-            format!("{}'s Direct Flight Menu from {}", &self.name, self.location).as_str(),
+            format!(
+                "{}'s Direct Flight Menu from {}",
+                self.name(),
+                self.location
+            )
+            .as_str(),
             &city_cards,
         );
         if selection == 0 {
@@ -154,7 +169,8 @@ impl Player {
             let selection = menu_cancelable(
                 format!(
                     "{}'s Charter Flight Menu from {}",
-                    &self.name, self.location
+                    self.name(),
+                    self.location
                 )
                 .as_str(),
                 &cities,
@@ -182,7 +198,7 @@ impl Player {
 
     pub fn shuttle_flight(&mut self, board: &mut Board) -> bool {
         if !board.map.get(&self.location).unwrap().has_research_station {
-            println!("{}'s current city, {}, does not have a research station, so shuttle flight is not available.", &self.name, &self.location);
+            println!("{}'s current city, {}, does not have a research station, so shuttle flight is not available.", self.name(), &self.location);
             return false;
         }
         let mut cities_with_research_stations = Vec::new();
@@ -195,7 +211,8 @@ impl Player {
         let selection = menu_cancelable(
             format!(
                 "{}'s Shuttle Flight Menu from {}",
-                &self.name, self.location
+                self.name(),
+                self.location
             )
             .as_str(),
             &cities_with_research_stations,
@@ -220,7 +237,7 @@ impl Player {
                 _ => (),
             }
         }
-        let selection = menu_cancelable(format!("Should {} consume a card to build a Research Station? Currently {}/{} Research Stations", self.name.clone().bold(), board.total_research_stations(), board::MAX_RESEARCH_STATIONS).as_str(), &city_cards);
+        let selection = menu_cancelable(format!("Should {} consume a card to build a Research Station? Currently {}/{} Research Stations", self.name(), board.total_research_stations(), board::MAX_RESEARCH_STATIONS).as_str(), &city_cards);
         if selection == 0 {
             false
         } else {
@@ -233,7 +250,7 @@ impl Player {
                 }
                 cities_with_research_stations.sort_unstable();
                 let selection = menu_cancelable(
-                    format!("{} can move a Research Station", &self.name).as_str(),
+                    format!("{} can move a Research Station", self.name()).as_str(),
                     &cities_with_research_stations,
                 );
                 if selection == 0 {
@@ -269,41 +286,76 @@ impl Player {
     }
 
     pub fn treat_disease(&mut self, board: &mut Board) -> bool {
+        let (blue_total, yellow_total, black_total, red_total) = (
+            board.total_cubes(Color::Blue),
+            board.total_cubes(Color::Yellow),
+            board.total_cubes(Color::Black),
+            board.total_cubes(Color::Red),
+        );
+        let (blue_status, yellow_status, black_status, red_status) = (
+            if board.blue_disease != DiseaseState::Default {
+                format!(" {}", &board.blue_disease)
+            } else {
+                String::default()
+            },
+            if board.yellow_disease != DiseaseState::Default {
+                format!(" {}", &board.yellow_disease)
+            } else {
+                String::default()
+            },
+            if board.black_disease != DiseaseState::Default {
+                format!(" {}", &board.black_disease)
+            } else {
+                String::default()
+            },
+            if board.red_disease != DiseaseState::Default {
+                format!(" {}", &board.red_disease)
+            } else {
+                String::default()
+            },
+        );
         match board.map.get_mut(&self.location) {
             Some(city) => {
                 let options = [
                     format!(
-                        "Treat {} ({}/{})",
+                        "Treat {} ({}/{}) [{}/{}{}]",
                         Color::Blue,
                         city.blue_infection_count,
-                        board::MAX_INFECTION_PER_TYPE_PER_CITY
+                        board::MAX_INFECTION_PER_TYPE_PER_CITY,
+                        blue_total,
+                        board::MAX_INFECTION_PER_TYPE,
+                        blue_status
                     ),
                     format!(
-                        "Treat {} ({}/{})",
+                        "Treat {} ({}/{}) [{}/{}{}]",
                         Color::Yellow,
                         city.yellow_infection_count,
-                        board::MAX_INFECTION_PER_TYPE_PER_CITY
+                        board::MAX_INFECTION_PER_TYPE_PER_CITY,
+                        yellow_total,
+                        board::MAX_INFECTION_PER_TYPE,
+                        yellow_status
                     ),
                     format!(
-                        "Treat {} ({}/{})",
+                        "Treat {} ({}/{}) [{}/{}{}]",
                         Color::Black,
                         city.black_infection_count,
-                        board::MAX_INFECTION_PER_TYPE_PER_CITY
+                        board::MAX_INFECTION_PER_TYPE_PER_CITY,
+                        black_total,
+                        board::MAX_INFECTION_PER_TYPE,
+                        black_status
                     ),
                     format!(
-                        "Treat {} ({}/{})",
+                        "Treat {} ({}/{}) [{}/{}{}]",
                         Color::Red,
                         city.red_infection_count,
-                        board::MAX_INFECTION_PER_TYPE_PER_CITY
+                        board::MAX_INFECTION_PER_TYPE_PER_CITY,
+                        red_total,
+                        board::MAX_INFECTION_PER_TYPE,
+                        red_status
                     ),
                 ];
                 let selection = menu_cancelable(
-                    format!(
-                        "{} is Treating Disease in {}",
-                        self.name.clone().bold(),
-                        &self.location
-                    )
-                    .as_str(),
+                    format!("{} is Treating Disease in {}", self.name(), &self.location).as_str(),
                     &options,
                 );
                 match selection {
@@ -360,12 +412,78 @@ impl Player {
         }
     }
 
-    pub fn share_knowledge(&mut self, board: &mut Board) -> bool {
-        todo!()
+    pub fn share_knowledge(&mut self, players: &mut [Player]) -> bool {
+        let mut options = Vec::new();
+        let mut actions = Vec::new();
+        for (i, player) in players.iter().enumerate() {
+            if self.location == player.location {
+                for (j, card) in self.hand.iter().enumerate() {
+                    match card {
+                        PlayerCard::CityCard(city) => {
+                            if self.role == Role::Researcher || city.city == self.location {
+                                options.push(format!(
+                                    "Give {} to {} | {}/{} cards",
+                                    card,
+                                    player.name(),
+                                    player.hand.len(),
+                                    MAX_CARDS_IN_HAND
+                                ));
+                                actions.push((players.len(), i, j));
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+                for (j, card) in player.hand.iter().enumerate() {
+                    match card {
+                        PlayerCard::CityCard(city) => {
+                            if player.role == Role::Researcher || city.city == self.location {
+                                options.push(format!(
+                                    "Take {} from {} | {}/{} cards",
+                                    card,
+                                    player.name(),
+                                    player.hand.len(),
+                                    MAX_CARDS_IN_HAND
+                                ));
+                                actions.push((i, players.len(), j));
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+            }
+        }
+        let selection = menu_cancelable(
+            format!(
+                "{}'s Share Knowledge Menu | {}/{} cards",
+                self.name(),
+                self.hand.len(),
+                MAX_CARDS_IN_HAND
+            )
+            .as_str(),
+            &options,
+        );
+        if selection == 0 {
+            return false;
+        }
+        let (from_idx, to_idx, card_idx) = actions[selection - 1];
+        if from_idx == to_idx {
+            return false;
+        }
+        if from_idx == players.len() {
+            players[to_idx].add_to_hand(self.hand.remove(card_idx));
+        } else if to_idx == players.len() {
+            self.add_to_hand(players[from_idx].hand.remove(card_idx));
+        } else {
+            return false;
+        }
+        true
     }
 
     pub fn discover_cure(&mut self, board: &mut Board) -> bool {
-        todo!()
+        const MIN_CARDS_TO_CURE: u8 = 5;
+        let city = board.map.get(&self.location).unwrap();
+        true
     }
 }
 
@@ -374,7 +492,7 @@ impl std::fmt::Display for Player {
         writeln!(
             f,
             "{} ({}) in {}\nwith",
-            self.name.clone().bold(),
+            self.name(),
             self.role,
             self.location
         )?;

@@ -68,7 +68,7 @@ pub struct City {
     pub(crate) yellow_infection_count: u8,
     pub(crate) black_infection_count: u8,
     pub(crate) red_infection_count: u8,
-    current_outbreak: bool
+    current_outbreak: bool,
 }
 
 impl City {
@@ -161,18 +161,18 @@ impl Board {
         }
     }
 
-    pub fn adjacent_to(&self, city: &Cities) -> Option<HashSet<Cities>> {
+    pub fn adjacent_to(&self, city: Cities) -> Option<HashSet<Cities>> {
         match self.map.get(&city) {
             Some(city) => Some(city.adjacent_cities.clone()),
             None => None,
         }
     }
 
-    pub fn is_adjacent(&self, from: &Cities, to: &Cities) -> bool {
+    pub fn is_adjacent(&self, from: Cities, to: Cities) -> bool {
         match self.adjacent_to(from) {
-            Some(cities) => cities.contains(to),
+            Some(cities) => cities.contains(&to),
             None => match self.adjacent_to(to) {
-                Some(cities) => cities.contains(from),
+                Some(cities) => cities.contains(&from),
                 None => false,
             },
         }
@@ -191,16 +191,20 @@ impl Board {
         self.player_deck.add_epidemic_cards(self.max_epidemics)
     }
 
-    pub fn total_cubes(&self, color: &Color) -> u8 {
+    pub fn total_cubes(&self, color: Color) -> u8 {
+        // println!("Entered total_cubes\ncolor: {:?}", color);
         let mut acc = 0;
         for city in self.map.values() {
-            if city.color == *color {
-                acc += match color {
+            // println!("city: {:?}", city);
+            if city.color == color {
+                let count = match color {
                     Color::Blue => city.blue_infection_count,
                     Color::Yellow => city.yellow_infection_count,
                     Color::Black => city.black_infection_count,
                     Color::Red => city.red_infection_count,
-                }
+                };
+                // println!("count: {}", count);
+                acc += count
             }
         }
         acc
@@ -214,68 +218,126 @@ impl Board {
         acc
     }
 
-    pub fn infect_city(&mut self, city: &Cities) -> bool {
-        let city_obj = self.map.get(city).unwrap();
-        match &city_obj.color {
-            Color::Blue => if self.blue_disease == DiseaseState::Eradicated { return true; },
-            Color::Yellow => if self.yellow_disease == DiseaseState::Eradicated { return true; },
-            Color::Black => if self.black_disease == DiseaseState::Eradicated { return true; },
-            Color::Red => if self.red_disease == DiseaseState::Eradicated { return true; },
-        }
-        let count = &mut match city_obj.color {
-            Color::Blue => city_obj.blue_infection_count,
-            Color::Yellow => city_obj.yellow_infection_count,
-            Color::Black => city_obj.black_infection_count,
-            Color::Red => city_obj.red_infection_count
+    pub fn infect_city(&mut self, city: Cities) -> bool {
+        let city_obj = self.map.get(&city).unwrap();
+        let city_color = city_obj.color;
+        let count = match city_color {
+            Color::Blue => {
+                if self.blue_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+                city_obj.blue_infection_count
+            }
+            Color::Yellow => {
+                if self.yellow_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+                city_obj.yellow_infection_count
+            }
+            Color::Black => {
+                if self.black_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+                city_obj.black_infection_count
+            }
+            Color::Red => {
+                if self.red_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+                city_obj.red_infection_count
+            }
         };
-        if self.total_cubes(&city_obj.color) + 1 > MAX_INFECTION_PER_TYPE {
+        if self.total_cubes(city_color) + 1 > MAX_INFECTION_PER_TYPE {
             false
-        }
-        else if *count + 1 > MAX_INFECTION_PER_TYPE_PER_CITY {
+        } else if count + 1 > MAX_INFECTION_PER_TYPE_PER_CITY {
             self.outbreak_city(city)
-        }
-        else {
-            *count += 1;
+        } else {
+            let city_obj = self.map.get_mut(&city).unwrap();
+            match city_color {
+                Color::Blue => city_obj.blue_infection_count += 1,
+                Color::Yellow => city_obj.yellow_infection_count += 1,
+                Color::Black => city_obj.black_infection_count += 1,
+                Color::Red => city_obj.red_infection_count += 1,
+            };
             true
         }
     }
 
-    pub fn infect_city_color(&mut self, city: &Cities, color: &Color) -> bool {
-        match color {
-            Color::Blue => if self.blue_disease == DiseaseState::Eradicated { return true; },
-            Color::Yellow => if self.yellow_disease == DiseaseState::Eradicated { return true; },
-            Color::Black => if self.black_disease == DiseaseState::Eradicated { return true; },
-            Color::Red => if self.red_disease == DiseaseState::Eradicated { return true; },
-        }
-        let city_obj = self.map.get(city).unwrap();
-        let count = &mut match color {
-            Color::Blue => city_obj.blue_infection_count,
-            Color::Yellow => city_obj.yellow_infection_count,
-            Color::Black => city_obj.black_infection_count,
-            Color::Red => city_obj.red_infection_count
+    pub fn infect_city_color(&mut self, city: Cities, color: Color) -> bool {
+        let city_obj = self.map.get(&city).unwrap();
+        let count = match color {
+            Color::Blue => {
+                if self.blue_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+                city_obj.blue_infection_count
+            }
+            Color::Yellow => {
+                if self.yellow_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+                city_obj.yellow_infection_count
+            }
+            Color::Black => {
+                if self.black_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+                city_obj.black_infection_count
+            }
+            Color::Red => {
+                if self.red_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+                city_obj.red_infection_count
+            }
         };
         if self.total_cubes(color) + 1 > MAX_INFECTION_PER_TYPE {
             false
-        }
-        else if *count + 1 > MAX_INFECTION_PER_TYPE_PER_CITY {
+        } else if count + 1 > MAX_INFECTION_PER_TYPE_PER_CITY {
             self.outbreak_city_color(city, color)
-        }
-        else {
-            *count += 1;
+        } else {
+            let city_obj = self.map.get_mut(&city).unwrap();
+            match color {
+                Color::Blue => city_obj.blue_infection_count += 1,
+                Color::Yellow => city_obj.yellow_infection_count += 1,
+                Color::Black => city_obj.black_infection_count += 1,
+                Color::Red => city_obj.red_infection_count += 1,
+            };
             true
         }
     }
 
-    pub fn outbreak_city(&mut self, city: &Cities) -> bool {
-        let mut city = self.map.get_mut(city).unwrap();
+    pub fn outbreak_city(&mut self, city: Cities) -> bool {
+        let mut city = self.map.get_mut(&city).unwrap();
         match &city.color {
-            Color::Blue => if self.blue_disease == DiseaseState::Eradicated { return true; },
-            Color::Yellow => if self.yellow_disease == DiseaseState::Eradicated { return true; },
-            Color::Black => if self.black_disease == DiseaseState::Eradicated { return true; },
-            Color::Red => if self.red_disease == DiseaseState::Eradicated { return true; },
+            Color::Blue => {
+                if self.blue_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+            }
+            Color::Yellow => {
+                if self.yellow_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+            }
+            Color::Black => {
+                if self.black_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+            }
+            Color::Red => {
+                if self.red_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+            }
         }
-        if city.current_outbreak { return true; }
-        println!("{} had an outbreak!", &city.city);
+        if city.current_outbreak {
+            return true;
+        }
+        println!(
+            "{} had an outbreak! {}/{}",
+            &city.city, self.outbreaks, MAX_OUTBREAKS
+        );
         city.current_outbreak = true;
         let city_color = city.color.clone();
         let adjacent_cities = city.adjacent_cities.clone();
@@ -284,23 +346,44 @@ impl Board {
             false
         } else {
             let mut game_continue = true;
-            for adjacent_city in &adjacent_cities {
-                game_continue = self.infect_city_color(adjacent_city, &city_color) && game_continue;
+            for adjacent_city in adjacent_cities {
+                game_continue = self.infect_city_color(adjacent_city, city_color) && game_continue;
             }
             game_continue
         }
     }
 
-    pub fn outbreak_city_color(&mut self, city: &Cities, color: &Color) -> bool {
+    pub fn outbreak_city_color(&mut self, city: Cities, color: Color) -> bool {
         match color {
-            Color::Blue => if self.blue_disease == DiseaseState::Eradicated { return true; },
-            Color::Yellow => if self.yellow_disease == DiseaseState::Eradicated { return true; },
-            Color::Black => if self.black_disease == DiseaseState::Eradicated { return true; },
-            Color::Red => if self.red_disease == DiseaseState::Eradicated { return true; },
+            Color::Blue => {
+                if self.blue_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+            }
+            Color::Yellow => {
+                if self.yellow_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+            }
+            Color::Black => {
+                if self.black_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+            }
+            Color::Red => {
+                if self.red_disease == DiseaseState::Eradicated {
+                    return true;
+                }
+            }
         }
-        let mut city = self.map.get_mut(city).unwrap();
-        if city.current_outbreak { return true; }
-        println!("{} had an outbreak of {}!", &city.city, color);
+        let mut city = self.map.get_mut(&city).unwrap();
+        if city.current_outbreak {
+            return true;
+        }
+        println!(
+            "{} had an outbreak of {}! {}/{}",
+            &city.city, color, self.outbreaks, MAX_OUTBREAKS
+        );
         city.current_outbreak = true;
         let adjacent_cities = city.adjacent_cities.clone();
         self.outbreaks += 1;
@@ -308,16 +391,11 @@ impl Board {
             false
         } else {
             let mut game_continue = true;
-            for adjacent_city in &adjacent_cities {
-                game_continue = self.infect_city_color(adjacent_city, &color) && game_continue;
+            for adjacent_city in adjacent_cities {
+                game_continue = self.infect_city_color(adjacent_city, color) && game_continue;
             }
             game_continue
         }
-    }
-
-    pub fn increase_outbreaks(&mut self) -> bool {
-        self.outbreaks += 1;
-        self.outbreaks < MAX_OUTBREAKS
     }
 
     pub fn increase_infection_rate(&mut self) -> bool {
@@ -771,6 +849,16 @@ fn make_red_cities() -> Vec<City> {
             ]),
         ),
     ]
+}
+
+impl std::fmt::Display for DiseaseState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Default => write!(f, "Default"),
+            Self::Cured => write!(f, "Cured"),
+            Self::Eradicated => write!(f, "Eradicated"),
+        }
+    }
 }
 
 impl std::fmt::Display for Cities {
