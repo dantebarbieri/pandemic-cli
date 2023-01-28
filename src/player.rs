@@ -497,8 +497,12 @@ impl std::fmt::Display for Player {
             self.location
         )?;
 
-        for card in &self.hand {
-            writeln!(f, "\t{}", &card)?;
+        if self.hand.is_empty() {
+            writeln!(f, "\tnothing")?;
+        } else {
+            for card in &self.hand {
+                writeln!(f, "\t{}", &card)?;
+            }
         }
 
         write!(f, "{}", "in hand.")
